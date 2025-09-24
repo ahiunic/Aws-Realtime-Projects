@@ -2,7 +2,7 @@ provider "aws" {
   region = var.region
 }
 
-# create vpc
+# Create VPC
 module "vpc" {
   source                  = "../modules/vpc"
   region                  = var.region
@@ -16,25 +16,24 @@ module "vpc" {
   secure_subnet_az2_cidr  = var.secure_subnet_az2_cidr
 }
 
-# create nat gateway
+# Create NAT Gateway
 module "natgateway" {
   source                = "../modules/natgateway"
   public_subnet_az1_id  = module.vpc.public_subnet_az1_id
-  internet_gateway      = module.vpc.internet_gateway
   public_subnet_az2_id  = module.vpc.public_subnet_az2_id
+  internet_gateway      = module.vpc.internet_gateway
   vpc_id                = module.vpc.vpc_id
   private_subnet_az1_id = module.vpc.private_subnet_az1_id
   private_subnet_az2_id = module.vpc.private_subnet_az2_id
 }
 
-# create security group
+# Create Security Groups
 module "security_group" {
   source = "../modules/security_group"
   vpc_id = module.vpc.vpc_id
-
 }
 
-# create alb
+# Create ALB
 module "application_load_balancer" {
   source                = "../modules/alb"
   project_name          = module.vpc.project_name
@@ -44,13 +43,14 @@ module "application_load_balancer" {
   vpc_id                = module.vpc.vpc_id
 }
 
-# create ec2
+# Create EC2 (IAM role/profile etc.)
 module "ec2" {
   source = "../modules/ec2"
   vpc_id = module.vpc.vpc_id
   region = var.region
 }
-#create rds
+
+# Create RDS
 module "rds" {
   source                = "../modules/rds"
   vpc_id                = module.vpc.vpc_id
@@ -59,16 +59,28 @@ module "rds" {
   secure_subnet_az2_id  = module.vpc.secure_subnet_az2_id
 }
 
-# create ASG
+# Create Auto Scaling Group (in private subnets)
 module "asg" {
   source                    = "../modules/asg"
   project_name              = module.vpc.project_name
   rds_db_endpoint           = module.rds.rds_db_endpoint
+  vpc_id                    = module.vpc.vpc_id
   private_subnet_az1_id     = module.vpc.private_subnet_az1_id
   private_subnet_az2_id     = module.vpc.private_subnet_az2_id
   application_load_balancer = module.application_load_balancer.application_load_balancer
   alb_target_group_arn      = module.application_load_balancer.alb_target_group_arn
   alb_security_group_id     = module.security_group.alb_security_group_id
   iam_ec2_instance_profile  = module.ec2.iam_ec2_instance_profile
-  
+}
+
+# --- Outputs ---
+
+output "application_load_balancer_dns_name" {
+  description = "DNS name of the ALB"
+  value       = module.application_load_balancer.application_load_balancer_dns_name
+}
+
+output "rds_db_endpoint" {
+  description = "The RDS endpoint"
+  value       = module.rds.rds_db_endpoint
 }
