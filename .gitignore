@@ -1,0 +1,19 @@
+# Terraform generated files
+.terraform/
+*.tfstate
+*.tfstate.*
+crash.log
+*.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+.terraform.lock.hcl
+
+# Binaries
+*.exe
+
+# OS/Editor
+.DS_Store
+*.swp
+*.bak
